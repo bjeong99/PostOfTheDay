@@ -8,7 +8,6 @@ post_id_counter = 0
 comment_id_counter = 0
 
 posts = {
-
 }
 
 comments = {
