@@ -1,7 +1,17 @@
 import json
 from flask import Flask, request
+from db import db, Post, User
+import datetime
 
 app = Flask(__name__)
+db_filename = 'potd.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % db_filename
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True
+
+db.init_app(app)
+with app.app_context():
+    db.create_all()
 
 post_id_counter = 0
 
@@ -13,11 +23,18 @@ posts = {
 comments = {
 
 }
-
-# GET all posts
+@app.route('/')
+# GET all posts (time order)
 @app.route('/api/posts/', methods=['GET'])
 def get_all_posts():
     res = {'success': True, 'data': list(posts.values())}
+    return json.dumps(res), 200
+
+# GET all posts (upvote order)
+@app.route('/api/posts/upvote/order/', methods=['GET'])
+def get_all_posts_order():
+    sort_posts = sorted(posts.items(), key=lambda e: e[1]['upvotes'])
+    res = {'success': True, 'data': sort_posts}
     return json.dumps(res), 200
 
 # POST(create) a post
@@ -26,14 +43,15 @@ def make_a_post():
     global post_id_counter
     post_body = json.loads(request.data)
     title = post_body['title']
-    link = post_body['link']
+    body = post_body['body']
     username = post_body['username']
     newPost = {
         'id': post_id_counter,
         'upvotes': 1,
         'title': title,
-        'link': link,
+        'body': body,
         'username': username,
+        'timestamp': format(datetime.datetime.now())
     }
     posts[post_id_counter] = newPost
     post_id_counter += 1

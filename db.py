@@ -1,5 +1,4 @@
 from flask_sqlalchemy import SQLAlchemy
-
 db = SQLAlchemy()
 
 # Your classes here
@@ -16,15 +15,15 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     upvotes = db.Column(db.Integer, nullable=False)
     body_post = db.Column(db.String, nullable=False)
+    time_stamp = db.Column(db.String, nullable=False)
     users = db.relationship(
-        'User', secondary=user_post_table, back_populates='postUser')
-    comments = db.relationship('Comment', cascade='delete')
+        'User', secondary=user_post_table, back_populates='posts')
 
     def __init__(self, **kwargs):
-        self.upvotes = kwargs.get('name', '')
-        self.body_post = kwargs.get('post', '')
+        self.upvotes = kwargs.get('upvotes', '')
+        self.body_post = kwargs.get('body', '')
+        self.time_stamp = kwargs.get('time stamp', '')
         self.users = []
-        self.comments = []
 
     def serialize(self):
         return {
@@ -40,4 +39,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False)
     posts = db.relationship(
-        'Posts', secondary=user_post_table, back_populates='')
+        'Posts', secondary=user_post_table, back_populates='users')
+
+    def __init__(self, **kwargs):
+        self.username = kwargs.get('username', '')
+        self.posts = []
+
+    def serialize(self):
+        return{
+            'id': self.id,
+            'username': self.username
+        }
