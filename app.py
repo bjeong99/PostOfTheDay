@@ -136,6 +136,28 @@ def post_comment(post_id):
     db.session.commit()
     return json.dumps({'success': True, 'data': newComment.serialize()}), 201
 
+# DELETE comment
+@app.route('/api/comments/<int:comment_id>/', methods=['DELETE'])
+def delete_comment(comment_id):
+    comment = Comment.query.filter_by(id=comment_id).first()
+    if not comment:
+        return json.dumps({'success': False, 'error': 'Comment not found'}), 404
+    db.session.delete(comment)
+    db.session.commit()
+    return json.dumps({'success': True, 'data': comment.serialize()}), 200
+
+# UPDATE comment
+@app.route('/api/comments/update/<int:comment_id>/', methods=['POST'])
+def edit_comment(comment_id):
+    comment = Comment.query.filter_by(id=comment_id).first()
+    if not comment:
+        return json.dumps({'success': False, 'error': 'Comment not found'}), 404
+    post_body = json.loads(request.data)
+    body_comment = post_body.get('body')
+    comment['body_comment'] = body_comment
+    db.session.commit()
+    return json.dumps({'success': True, 'data': comment.serialze()}), 200
+
 
 """
 YOUR ROUTES BELOW
