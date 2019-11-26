@@ -154,9 +154,9 @@ def edit_comment(comment_id):
         return json.dumps({'success': False, 'error': 'Comment not found'}), 404
     post_body = json.loads(request.data)
     body_comment = post_body.get('body')
-    comment['body_comment'] = body_comment
+    comment.body_comment = body_comment
     db.session.commit()
-    return json.dumps({'success': True, 'data': comment.serialze()}), 200
+    return json.dumps({'success': True, 'data': comment.serialize()}), 200
 
 
 """
