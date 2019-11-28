@@ -1,8 +1,8 @@
 import json
 from flask import Flask, request
 from db import db, Post, User, Comment
-import datetime
-from sqlalchemy import desc
+from datetime import datetime, date
+from sqlalchemy import desc, and_
 app = Flask(__name__)
 db_filename = 'potd.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///%s' % db_filename
@@ -29,6 +29,17 @@ def get_all_posts_order():
     res = {'success': True, 'data': [p.serialize() for p in posts]}
     return json.dumps(res), 200
 
+# GET all posts from specific day
+@app.route('/api/posts/date/<int:month>/<int:day>/<int:year>/', methods=['GET'])
+def get_all_posts_date(month, day, year):
+    str_month = str(month)
+    str_day = str(day)
+    str_year = str(year)
+    str_date = str_year + str_month + str_day
+    s_date = datetime.strptime(str_date, "%Y%m%d").date()
+    posts = Post.query.filter_by(date=s_date)
+    return json.dumps({'success': True, 'data': [p.serialize() for p in posts]}), 200
+
 # POST(create) a post
 @app.route('/api/posts/', methods=['POST'])
 def make_a_post():
@@ -40,7 +51,8 @@ def make_a_post():
     newPost = Post(
         upvotes=0,
         body_post=body_post,
-        time_stamp=format(datetime.datetime.now()),
+        time_stamp=datetime.datetime.now(),
+        date=date.today(),
         user_id=user_id
     )
     db.session.add(newPost)
@@ -128,7 +140,8 @@ def post_comment(post_id):
     user_id = user.id
     newComment = Comment(
         body_comment=body_comment,
-        time_stamp=format(datetime.datetime.now()),
+        time_stamp=datetime.datetime.now(),
+        date=date.today(),
         user_id=user_id,
         post_id=post_id
     )
