@@ -1,7 +1,7 @@
 import json
 from flask import Flask, request
 from db import db, Post, User, Comment
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import desc, and_
 app = Flask(__name__)
 db_filename = 'potd.db'
@@ -40,6 +40,15 @@ def get_all_posts_date(month, day, year):
     posts = Post.query.filter_by(date=s_date)
     return json.dumps({'success': True, 'data': [p.serialize() for p in posts]}), 200
 
+# GET the post that is saved from yesterday
+@app.route('/api/save/', methods=['GET'])
+def save_post():
+    s_date = date.today() - timedelta(days=1)
+    posts = Post.query.filter_by(date=s_date)
+    post = Post.query.order_by(desc(Post.upvotes)).first()
+    res = {'success': True, 'data': post.serialize()}
+    return json.dumps(res), 200
+
 # POST(create) a post
 @app.route('/api/posts/', methods=['POST'])
 def make_a_post():
@@ -47,11 +56,13 @@ def make_a_post():
     body_post = post_body.get('body')
     username = post_body.get('username')
     user = User.query.filter_by(username=username).first()
+    if not user:
+        return json.dumps({'success': False, 'error': 'user not found'}), 404
     user_id = user.id
     newPost = Post(
         upvotes=0,
         body_post=body_post,
-        time_stamp=datetime.datetime.now(),
+        time_stamp= datetime.now(),
         date=date.today(),
         user_id=user_id
     )
@@ -90,6 +101,8 @@ def upvote_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
     if not post:
         return json.dumps({'success': False, 'error': 'Post not found'}), 404
+    if post.date != date.today():
+        return json.dumps({'success': False, 'error': 'old posts are locked'}), 403
     post.upvotes += 1
     db.session.commit()
     return json.dumps({'success': True, 'data': post.serialize()}), 200
@@ -106,6 +119,9 @@ def get_users():
 def make_user():
     post_body = json.loads(request.data)
     username = post_body.get('username')
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return json.dumps({'success': False, 'error': 'user already exists'}), 403
     newUser = User(
         username=username
     )
@@ -130,17 +146,29 @@ def get_comments():
     res = {'success': True, 'data': [c.serialize() for c in comments]}
     return json.dumps(res), 200
 
+# GET comments for a particular post
+@app.route('/api/comments/<int:pid>/', methods=['GET'])
+def get_post_comments(pid):
+    comments = Comment.query.filter_by(post_id = pid)
+    return json.dumps({'success': True, 'data': [p.serialize() for p in comments]}), 200
+
 # POST comment
 @app.route('/api/comments/<int:post_id>/', methods=['POST'])
 def post_comment(post_id):
+    post = Post.query.filter_by(id=post_id).first()
+    if not post:
+        return json.dumps({'success': False, 'error': 'Post not found'}), 404
+
     post_body = json.loads(request.data)
     body_comment = post_body.get('body')
     username = post_body.get('username')
     user = User.query.filter_by(username=username).first()
+    if not user:
+        return json.dumps({'success': False, 'error': 'user not found'}), 404
     user_id = user.id
     newComment = Comment(
         body_comment=body_comment,
-        time_stamp=datetime.datetime.now(),
+        time_stamp= datetime.now(),
         date=date.today(),
         user_id=user_id,
         post_id=post_id
